@@ -135,6 +135,41 @@ def distance_matrix(pixels):
 	return D
 
 
+def distance_matrix_manhattan(pixels):
+	print("Calculating Manhattan Distance Matrix...")
+	P = pixels-np.mean(pixels, axis=0)
+	Dj = np.zeros((P.shape[0], P.shape[0], 3))
+	q = np.linalg.norm(P,axis=1)
+	for j in range(0,3):
+		Pj = P[:, j]
+		Pjt = np.transpose(Pj)
+		q = np.square(Pj)
+		qt = np.transpose(q)
+		Dj[:,:,j] = q + qt - 2*np.matmul(Pj, Pjt)
+
+	D = np.sum(Dj, axis=2)
+	print("Distance Manhattan matrix calculated!")
+
+	return D
+
+
+def distance_matrix_chebychev(pixels):
+	print("Calculating Chebychev Distance Matrix...")
+	P = pixels-np.mean(pixels, axis=0)
+	Dj = np.zeros((P.shape[0], P.shape[0], 3))
+	q = np.linalg.norm(P,axis=1)
+	for j in range(0,3):
+		Pj = P[:, j]
+		Pjt = np.transpose(Pj)
+		q = np.square(Pj)
+		qt = np.transpose(q)
+		Dj[:,:,j] = q + qt - 2*np.matmul(Pj, Pjt)
+
+	D = np.max(Dj, axis=2)
+	print("Distance Chebychev matrix calculated!")
+	return D
+
+
 def kmed_assignclusters_matrix(pixels, centroids_ind, K, D):
 	assignments_r = np.zeros((pixels.shape[0], K))
 	for i in range(0, pixels.shape[0]):
@@ -233,6 +268,12 @@ def kmed_updateclusters(assign_r, pixels, K):
 		cluster_inds[i] = cluster_ind
 
 	clusters = pixels[cluster_inds.squeeze()]
+	uniq, ind = np.unique(clusters, axis=0, return_index=True)
+	while ind.shape[0] < clusters.shape[0]:
+		for i in range(0, clusters.shape[0]):
+			if i not in ind:
+				clusters[i] = pixels[np.random.randint(0, pixels.shape[0])]
+			uniq, ind = np.unique(clusters, axis=0, return_index=True)
 	return clusters
 
 
@@ -245,12 +286,12 @@ def kmed_updateclusters_matrix(assign_r, pixels, K, D):
 		cluster_inds[i] = cluster_ind
 
 	clusters = pixels[cluster_inds.squeeze()]
-	unique, indices = np.unique(clusters, axis=0, return_index=True)
-	for j in range(0, K):
-		if j in indices:
-			continue
-		else:
-			clusters[j] = pixels[np.random.randint(0, pixels.shape[0])]
+	uniq, ind = np.unique(clusters, axis=0, return_index=True)
+	while ind.shape[0] < clusters.shape[0]:
+		for i in range(0, clusters.shape[0]):
+			if i not in ind:
+				clusters[i] = pixels[np.random.randint(0, pixels.shape[0])]
+		uniq, ind = np.unique(clusters, axis=0, return_index=True)
 	return clusters
 
 
@@ -269,6 +310,10 @@ def mykmedoids(pixels, K, option=0):
 	# if matrix option, calculate D matrix
 	if option == 2:
 		D = distance_matrix(pixels)
+	elif option == 3:
+		D = distance_matrix_manhattan(pixels)
+	elif option == 4:
+		D = distance_matrix_chebychev(pixels)
 	steps = 100
 	cnt = 1
 	epsilon = 1e-1
@@ -276,13 +321,13 @@ def mykmedoids(pixels, K, option=0):
 	print("Clustering iterations for K-Medoids are beginning...")
 	while not converged:
 		# CLUSTER ASSIGNMENT
-		if option==2:
+		if option==2 or option == 3 or option == 4:
 			assignments_r = kmed_assignclusters_matrix(pixels, centroids_ind, K, D)
 		else:
 			assignments_r = kmed_assignclusters(pixels, centroids, K, option)
 		centroids_last = centroids
 		# CLUSTER ADJUSTMENT
-		if option == 2:
+		if option==2 or option == 3 or option == 4:
 			centroids = kmed_updateclusters_matrix(assignments_r, pixels, K, D)
 		else:
 			centroids = kmed_updateclusters(assignments_r, pixels, K)
@@ -324,7 +369,7 @@ def main():
 
 	t1 = time.time()
 	print("Starting K-medoids Clustering")
-	classes, centers = mykmedoids(im_vector, K, option=0)
+	classes, centers = mykmedoids(im_vector, K, option=0)  # Options: 0: L2 quick, 2: Matrix L2, 3: Matrix L1, 4: Matrix Linf
 	print(classes, centers)
 	new_im = np.asarray(centers[classes].reshape(im.shape), im.dtype)
 	imageio.imwrite(os.path.basename(os.path.splitext(image_file_name)[0]) + '_converted_mykmedoids_' + str(K) + os.path.splitext(image_file_name)[1], new_im)
