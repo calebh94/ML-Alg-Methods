@@ -4,11 +4,9 @@
 import time
 import sys
 import os
-# import heapq
 import numpy as np
 from queue import PriorityQueue
-import heapq
-import datetime
+# import heapq
 
 
 class Node():
@@ -31,7 +29,7 @@ class Graph():
         self.edges = 0
 
     def get_size(self):
-        return (self.nodes, self.edges)
+        return self.nodes, self.edges
 
     def allocate(self, num_nodes):
         # self.V = np.empty((num_nodes), dtype=np.int8)
@@ -58,7 +56,6 @@ class Graph():
             self.E[node1, node2] = weight
             self.E[node2, node1] = weight
         else:
-            #TODO: update to have multiple edge values for different "edges"
             if weight < self.E[node1, node2]:
                 self.E[node1, node2] = weight
                 self.E[node2, node1] = weight
@@ -112,7 +109,6 @@ class RunExperiments:
         # print(G.E)
         return G
 
-
     def computeMST(self, G):
         '''
         computeMST using Prim's Algorithm
@@ -138,7 +134,6 @@ class RunExperiments:
         tree = []
         costs = []
         fifo = 1
-        # print("Starting at node {}".format(start))
         while not Q.empty():
             u_cost, link, u_node = Q.get()
             u = u_node.get_index()
@@ -149,74 +144,58 @@ class RunExperiments:
             if u!=start:
                 self.MST.insert_edge(link[0], link[1], u_cost)
             W = W + u_cost
-            # print("At node {} with cost {}".format(u, u_cost))
             S[u] = True
             for v in u_node.neighbors:
                 cost = G.E[u,v]
                 if not S[v] and cost < a[v]:
-                    # queue_place = a[v]  # to find
                     a[v] = cost  # update cost
-                    # if in_Q[v]:
-                    #      for k1,i,k3 in Q.queue:
-                    #          if v == i:
-                    #             Q.queue.remove(i)
-                    #             Q.put((a[v], v, G.V[v]))
                 Q.put((a[v], (u, v),   G.V[v]))
                 fifo = fifo+1
         self.totalweight = W
         return W
 
+    # ComputeMST version 2 which used heapq package rather than queue package
+    # def computeMST2(self, G):
+    #     '''
+    #     computeMST using Prim's Algorithm
+    #     :param G:  Graph Network formed by parse_edges()    1
+    #     :return: Total weight of MST
+    #     '''
+    #     W = 0
+    #     # Initialize set of explored nodes
+    #     S = np.empty((G.get_size()[0]), dtype=bool)
+    #     S.fill(False)  # initialize as not explored
+    #     in_Q = np.empty((G.get_size()[0]), dtype=bool)
+    #     in_Q.fill(False)
     #
-    def computeMST2(self, G):
-        '''
-        computeMST using Prim's Algorithm
-        :param G:  Graph Network formed by parse_edges()    1
-        :return: Total weight of MST
-        '''
-
-        W = 0
-
-        # Initialize cheapest edge value for each node in
-
-        # Initialize set of explored nodes
-        S = np.empty((G.get_size()[0]), dtype=bool)
-        S.fill(False)  # initialize as not explored
-        in_Q = np.empty((G.get_size()[0]), dtype=bool)
-        in_Q.fill(False)
-
-        # Initialize priority queue with nodes (Priority is edge weight)
-        # Q = [float("inf")] * G.get_size()[0]
-        start = 0
-        a = []
-        # for i in range(0, G.get_size()[0]):
-        #     Q.append((float("inf"), i))
-        for i in range(0, G.get_size()[0]):
-            a.append([float("inf"), i])
-        a[0][0] = 0
-        Q = a.copy()
-        #Initialize with first node
-        start = 0
-        tree = []
-        costs = []
-        print("Starting at node {}".format(start))
-        while len(tree) < G.get_size()[0]:
-            heapq.heapify(Q)
-            cost, u = heapq.heappop(Q)
-            tree.append(u)
-            costs.append(cost)
-            W = W + cost
-            print("At node {} with cost {}".format(u, cost))
-            S[u] = True
-            a[u][0] = float("inf")  # needed?
-            for v in G.V[u].neighbors:
-                cost = G.E[u,v]
-                if not S[v] and cost < a[v][0]:
-                    a[v][0] = cost  # update cost
-            Q = a.copy()
-
-        self.MST = tree
-        return W
-
+    #     # Initialize priority queue with nodes (Priority is edge weight)
+    #     a = []
+    #     for i in range(0, G.get_size()[0]):
+    #         a.append([float("inf"), i])
+    #     a[0][0] = 0
+    #     Q = a.copy()
+    #     #Initialize with first node
+    #     start = 0
+    #     tree = []
+    #     costs = []
+    #     print("Starting at node {}".format(start))
+    #     while len(tree) < G.get_size()[0]:
+    #         heapq.heapify(Q)
+    #         cost, u = heapq.heappop(Q)
+    #         tree.append(u)
+    #         costs.append(cost)
+    #         W = W + cost
+    #         print("At node {} with cost {}".format(u, cost))
+    #         S[u] = True
+    #         a[u][0] = float("inf")  # needed?
+    #         for v in G.V[u].neighbors:
+    #             cost = G.E[u,v]
+    #             if not S[v] and cost < a[v][0]:
+    #                 a[v][0] = cost  # update cost
+    #         Q = a.copy()
+    #
+    #     self.MST = tree
+    #     return W
 
     def removecycle_recursive(self, G, u, z, visited, last_edges):
         visited[u] = True
@@ -232,7 +211,6 @@ class RunExperiments:
                 edges.append((u,v))
                 return True, edges
         return False, last_edges
-
 
     def removecycle(self, G, start, end):
         remove = 0
@@ -257,10 +235,10 @@ class RunExperiments:
             removed = edges[max_index]
         return remove, removed
 
-    def recomputeMST(self, u, v, weight, G):
+
+    def recomputeMST(self, u, v, weight, G, fast=True):
         # Write this function to recompute total weight of MST with the newly added edge
-        slow = False
-        if slow:
+        if not fast:
             G.insert_edge(u, v, weight)
             W = self.computeMST(G)
             return W
@@ -280,35 +258,12 @@ class RunExperiments:
 
         self.MST.insert_edge(u, v, weight)
         G_MST = self.MST.copy()
-        # if G_MST.E[u,v] != 0:
-        #     # G_MST.E[u,v] = weight
-        #     G.insert_edge(u,v, weight)
-        #     W = self.computeMST(G)
-        #     # W = self.totalweight
-        #     return W
-        # if G_MST.E[u,v] != 0 and weight >= G_MST.E[u,v]:
-        #     print("Added edge already exists at lower cost in Minimum Spanning Tree!")
-        #     return self.totalweight
-        # elif G_MST.E[u,v] != 0 and weight < G_MST.E[u,v]:
-        #     # old_weight = G_MSTo.E[u,v]
-        #     G_MST.E[u,v] = weight
-        #     # return self.totalweight - old_weight + weight
-        #     W = self.computeMST(G)
-        #     return W
-        # else:
-
-        # G_MST.insert_edge(u, v, weight)
-        if u==3:
-            print("stop")
         edge_weight, edge = self.removecycle(G_MST, u, v)
-        # update MST #TODO: make it an internal graph call
         if self.MST.E[edge[0], edge[1]] != 0:
             self.MST.remove_edge(edge[0], edge[1])
-        #TODO: update graph!
         W = self.totalweight + weight - edge_weight
         self.totalweight = W
         return W
-
 
     def main(self):
 
@@ -336,7 +291,6 @@ class RunExperiments:
         output = open(output_file, 'w')
         output.write(str(MSTweight) + " " + str(total_time) + "\n")
 
-
         # Changes file
         with open(change_file, 'r') as changes:
             num_changes = changes.readline()
@@ -348,13 +302,12 @@ class RunExperiments:
 
                 u, v, weight = edge_data[0], edge_data[1], edge_data[2]
 
-                # call recomputeMST function
+                # call recomputeMST function (fast=True uses cycle property to solve)
                 start_recompute = time.time()
-                new_weight = self.recomputeMST(u, v, weight, G)
+                new_weight = self.recomputeMST(u, v, weight, G, fast=True)
                 # to convert to milliseconds
                 end_recompute = time.time()
                 total_recompute = (end_recompute - start_recompute) * 1000
-
 
                 # write new weight and time to output file
                 output.write(str(new_weight) + " " + str(total_recompute) + "\n")
