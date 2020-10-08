@@ -2,6 +2,83 @@ import numpy as np
 from numpy import random
 from AccMeasure import acc_measure
 
+
+
+def Estep(T, pi, mu, D, K, W):
+	gamma = np.zeros((D,K))
+	for i in range(0, D):
+		numer_arr = np.zeros((K))
+		for c in range(0, K):
+			numer = 1
+			pi_c = pi[c]
+			for j in range(0, W):
+				wp = np.power(mu[j, c], T[i, j])
+				numer = numer * wp
+			numer_arr[c] = numer * pi_c
+		denom_sum = numer_arr.sum()
+		gamma[i, :] = numer_arr / denom_sum
+	return gamma
+
+
+def Estep_Mat(T, pi, mu, D, K, W):
+	gamma = np.zeros((D,K))
+	gamma_bot = np.zeros((D,K))
+	gamma_top = np.zeros((D,K))
+	i=1
+	c=2
+	for i in range(0, W):
+		for c in range(0, K):
+			gamma_top[i,c] = pi[c] * np.prod(np.power(mu[:, c], T[i, :]))
+		# for c in range(0, K):
+		gamma_bot[i,:] = np.sum(gamma_top[i,:])
+	# gamma = gamma_top / gamma_bot
+	gamma = np.divide(gamma_top, gamma_bot)
+	# gamma = np.nan_to_num(gamma)
+	return gamma
+
+
+
+def Mstep(gamma, T, D, K, W):
+	mu = np.empty((D,K))
+	pi = np.empty((K))
+	for j in range(0, W):
+		for c in range(0, K):
+			numer2 = 0
+			denom2 = 0
+			sum2 = 0
+			for i in range(0, D):
+				val = gamma[i, c] * T[i, j]
+				numer2 = numer2 + val
+				denom_arr = gamma[i,c] * T[i, :]  # TODO: matrix math applied elswhere?
+				denom2 = denom2 + np.sum(denom_arr)
+			mu[j, c] = numer2 / denom2
+		for c in range(0, K):
+			pi[c] = np.sum(gamma[:, c]) / D
+	return pi, mu
+
+
+def Mstep_Mat(gamma, T, D, K, W):
+	mu = np.empty((D,K))
+	pi = np.empty((K))
+	mu_bot = np.empty((D,K))
+	mu_top = np.empty((D,K))
+
+	j=0
+	c=0
+	for j in range(0, W):
+		for c in range(0, K):
+			mu_top[j,c] = np.sum(np.transpose(gamma[:,c]) * T[:, j])  #top
+			mu_bot[j,c] = np.sum(gamma[:, c].reshape(gamma.shape[0],1) * T)
+
+	mu = mu_top.copy() / mu_bot.copy()
+	mu = np.nan_to_num(mu)
+
+	for c in range(0, K):
+		pi[c] = np.sum(gamma[:, c]) / D
+
+	return pi, mu
+
+
 def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 	"""
 
@@ -51,21 +128,25 @@ def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 	chg = float("inf")
 	loss = 0
 
+	conv_arr = []
+	acc_arr = []
+
 	while its <= num_iters and chg >= epsilon:
 		gamma_last = gamma.copy()
 		last_loss = loss
 		# E-Step, TODO: move to separate function call
-		for i in range(0, num_docs):
-			numer_arr = np.empty((K))
-			for c in range(0, K):
-				numer = 1
-				pi_c = pi[c]
-				for j in range(0, num_words):
-					wp = np.power(mu_arr[j, c], T[i, j])
-					numer = numer * wp
-				numer_arr[c] = numer * pi_c
-			denom_sum = numer_arr.sum()
-			gamma[i, :] = numer_arr / denom_sum
+		gamma = Estep(T, pi, mu_arr, num_docs, K, num_words)
+		# for i in range(0, num_docs):
+		# 	numer_arr = np.empty((K))
+		# 	for c in range(0, K):
+		# 		numer = 1
+		# 		pi_c = pi[c]
+		# 		for j in range(0, num_words):
+		# 			wp = np.power(mu_arr[j, c], T[i, j])
+		# 			numer = numer * wp
+		# 		numer_arr[c] = numer * pi_c
+		# 	denom_sum = numer_arr.sum()
+		# 	gamma[i, :] = numer_arr / denom_sum
 
 		# Calculate Loss
 		loss = 0
@@ -79,36 +160,39 @@ def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 		# err = np.sum(err_arr)
 		# chg = np.abs(last_loss - loss)
 		chg = np.linalg.norm(gamma - gamma_last)
+		conv_arr.append(chg)
 
 		idx = gamma.argmax(axis=1)
 
 		# M-Step, TODO: move to seperate function call
-		mu_arr_last = mu_arr
-		pi_last = pi
-		for j in range(0, num_words):
-
-			for c in range(0, K):
-
-				numer2 = 0
-				denom2 = 0
-				sum2 = 0
-				for i in range(0, num_docs):
-					val = gamma[i, c] * T[i, j]
-					numer2 = numer2 + val
-
-					denom_arr = gamma[i,c] * T[i, :]  # TODO: matrix math applied elswhere?
-					denom2 = denom2 + np.sum(denom_arr)
-
-
-				mu_arr[j, c] = numer2 / denom2
-
-		for c in range(0, K):
-			pi[c] = np.sum(gamma[:, c]) / num_docs
+		pi, mu_arr = Mstep(gamma, T, num_docs, K, num_words)
+		# mu_arr_last = mu_arr
+		# pi_last = pi
+		# for j in range(0, num_words):
+		#
+		# 	for c in range(0, K):
+		#
+		# 		numer2 = 0
+		# 		denom2 = 0
+		# 		sum2 = 0
+		# 		for i in range(0, num_docs):
+		# 			val = gamma[i, c] * T[i, j]
+		# 			numer2 = numer2 + val
+		#
+		# 			denom_arr = gamma[i,c] * T[i, :]  # TODO: matrix math applied elswhere?
+		# 			denom2 = denom2 + np.sum(denom_arr)
+		#
+		#
+		# 		mu_arr[j, c] = numer2 / denom2
+		#
+		# for c in range(0, K):
+		# 	pi[c] = np.sum(gamma[:, c]) / num_docs
 
 		its = its+1
 		print("E-Step and M-Step complete on iteration {} with change of {}".format(its, chg))
 		acc = acc_measure(idx)
 		print('accuracy %.4f' % (acc))
+		acc_arr.append(acc)
 
 
 	if idx.max() > 3 or idx.min() < 0 or idx.dtype != np.int64:
