@@ -1,26 +1,26 @@
 import scipy.io
 from AccMeasure import acc_measure
 from mycluster import cluster
-# from mycluster_extra import cluster_extra
+from mycluster import cluster_extra
 from show_topics import display_topics
 
 mat = scipy.io.loadmat('data.mat')
 mat = mat['X']
 X = mat[:, :-1]
 
-idx = cluster(X, 4, num_iters=30)
-print(idx)
-
-acc = acc_measure(idx)
-
-print('accuracy %.4f' % (acc))
+# idx = cluster(X, 4, num_iters=5, epsilon=1e-8, plot=False)
+# print(idx)
+#
+# acc = acc_measure(idx)
+#
+# print('accuracy %.4f' % (acc))
 
 # ======================== uncomment the following for extra task ========================
-# n_topics = 5 # TODO specify num topics yourself
-# cell = scipy.io.loadmat('nips.mat')
-# mat = cell['raw_count'] # sparse mat of size (num_doc, num_words)
-# wl = cell['wl']
+n_topics = 5 # TODO specify num topics yourself
+cell = scipy.io.loadmat('nips.mat')
+mat = cell['raw_count'] # sparse mat of size (num_doc, num_words)
+wl = cell['wl']
 
-# W = cluster_extra(mat, n_topics)
+W = cluster_extra(mat, n_topics, num_iters=1, epsilon=1e-2, plot=False)
 
-# display_topics(W, wl)
+display_topics(W, wl)
