@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import random
+from AccMeasure import acc_measure
 
 def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 	"""
@@ -37,9 +38,6 @@ def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 	# 	word_cnts = word_cnts / word_cnts.sum()
 	# 	mu_arr[:, p] = word_cnts
 
-
-
-
 	pi = np.empty((K))
 	for k in range(0, K):
 		pi[k] = np.random.uniform(0,1)
@@ -54,36 +52,33 @@ def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 	loss = 0
 
 	while its <= num_iters and chg >= epsilon:
-		gamma_last = gamma
+		gamma_last = gamma.copy()
 		last_loss = loss
 		# E-Step, TODO: move to separate function call
-		if its == 0:
-			gamma = np.random.rand(num_docs, K)
-			for i in range(0, num_docs):
-				gamma[i, :] = gamma[i, :] / np.sum(gamma[i, :])
-		else:
-			for i in range(0, num_docs):
-				numer_arr = np.empty((K))
-				for c in range(0, K):
-					numer = 1
-					pi_c = pi[c]
-					for j in range(0, num_words):
-						wp = np.power(mu_arr[j, c], T[i, j])
-						numer = numer * wp
-					numer_arr[c] = numer * pi_c
-				denom_sum = numer_arr.sum()
-				gamma[i, :] = numer_arr / denom_sum
+		for i in range(0, num_docs):
+			numer_arr = np.empty((K))
+			for c in range(0, K):
+				numer = 1
+				pi_c = pi[c]
+				for j in range(0, num_words):
+					wp = np.power(mu_arr[j, c], T[i, j])
+					numer = numer * wp
+				numer_arr[c] = numer * pi_c
+			denom_sum = numer_arr.sum()
+			gamma[i, :] = numer_arr / denom_sum
 
-			loss = 0
-			for i in range(0, num_words):
-				loss_sub = 0
-				for c in range(0, K):
-					loss_sub = loss_sub + pi[c] * gamma[i, c]
-				loss = loss + np.log(loss_sub)
+		# Calculate Loss
+		loss = 0
+		for i in range(0, num_words):
+			loss_sub = 0
+			for c in range(0, K):
+				loss_sub = loss_sub + pi[c] * gamma[i, c]
+			loss = loss + np.log(loss_sub)
 
-			# err_arr = np.abs(gamma_last - gamma)
-			# err = np.sum(err_arr)
-			chg = np.abs(last_loss - loss)
+		# err_arr = np.abs(gamma_last - gamma)
+		# err = np.sum(err_arr)
+		# chg = np.abs(last_loss - loss)
+		chg = np.linalg.norm(gamma - gamma_last)
 
 		idx = gamma.argmax(axis=1)
 
@@ -112,6 +107,8 @@ def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 
 		its = its+1
 		print("E-Step and M-Step complete on iteration {} with change of {}".format(its, chg))
+		acc = acc_measure(idx)
+		print('accuracy %.4f' % (acc))
 
 
 	if idx.max() > 3 or idx.min() < 0 or idx.dtype != np.int64:
