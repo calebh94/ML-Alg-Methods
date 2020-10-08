@@ -151,8 +151,41 @@ def cluster(T, K, num_iters = 1000, epsilon = 1e-12, plot = False):
 
 
 
+# def Estep_extra_old(T, pi, mu_jc, mu_ic, D, K, W):
+# 	gamma = np.zeros((D,W,K))
+# 	# for i in range(0, D):
+# 	for c in range(0,K):
+# 		print("Running Estep for cluster {} of {}".format(c, K))
+# 		# numer_arr = np.zeros((K))
+# 		# for c in range(0, K):
+# 		pi_c = pi[c]
+# 		for i in range(0, D):
+# 			print("Running Estep for cluster {}, document {} of {}".format(c, i, D))
+# 			wp_jc = np.power(mu_jc[:, c], T[i, :].toarray())
+# 			numer = np.prod(wp_jc) * pi_c
+# 			# numer = 1
+# 			# pi_c = pi[c]
+# 			for j in range(0, W):
+# 				print("Running Estep for cluster {}, document {}, word {} of {}".format(c, i, j, W))
+# 				wp_jc = np.power(mu_jc[j, c], T[i, j])
+# 				wp_ic = np.power(mu_ic[i, c], T[i, j])
+# 				numer = numer * wp_jc * wp_ic
+# 				gamma[i,j,c] = numer
+# 		gamma[:,:,c] = gamma[:,:,c] * pi_c
+# 			# numer_arr[c] = numer * pi_c
+# 		# denom_sum = numer_arr.sum()
+# 		# gamma[i, ] = numer_arr / denom_sum
+# 	summ = np.sum(gamma)
+# 	# for c in range(0,K):
+# 	gamma = gamma / summ
+# 	return gamma
+
+
 def Estep_extra(T, pi, mu_jc, mu_ic, D, K, W):
 	gamma = np.zeros((D,W,K))
+	gamma_i = np.zeros((D,W,K))
+	gamma_j = np.zeros((D,W,K))
+
 	# for i in range(0, D):
 	for c in range(0,K):
 		print("Running Estep for cluster {} of {}".format(c, K))
@@ -161,18 +194,19 @@ def Estep_extra(T, pi, mu_jc, mu_ic, D, K, W):
 		pi_c = pi[c]
 		for i in range(0, D):
 			print("Running Estep for cluster {}, document {} of {}".format(c, i, D))
-			numer = 1
-			# pi_c = pi[c]
-			for j in range(0, W):
-				print("Running Estep for cluster {}, document {}, word {} of {}".format(c, i, j, W))
-				wp_jc = np.power(mu_jc[j, c], T[i, j])
-				wp_ic = np.power(mu_ic[i, c], T[i, j])
-				numer = numer * wp_jc * wp_ic
-				gamma[i,j,c] = numer * pi_c
-			# numer_arr[c] = numer * pi_c
-		# denom_sum = numer_arr.sum()
-		# gamma[i, ] = numer_arr / denom_sum
-		gamma[:,:,c] = gamma[:,:,c] / np.sum(gamma[:,:,c] )
+			wp_jc = np.power(mu_jc[:, c], T[i, :].toarray())
+			numer = np.prod(wp_jc)
+			gamma_i[i,:,c] = numer
+		for j in range(0,W):
+			print("Running Estep for cluster {}, word {} of {}".format(c, j, W))
+			wp_ic = np.power(mu_ic[:, c], T[:, j].toarray())
+			numer2 = np.prod(wp_ic)
+			gamma_j[:, j, c] = numer2
+		gamma[:,:,c] = gamma_i[:,:,c] * gamma_j[:,:,c] * pi_c
+	summ = np.sum(gamma)
+	# for c in range(0,K):
+	gamma = gamma / summ
+	gamma = np.nan_to_num(gamma)
 	return gamma
 
 

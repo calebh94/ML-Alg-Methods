@@ -21,6 +21,6 @@ cell = scipy.io.loadmat('nips.mat')
 mat = cell['raw_count'] # sparse mat of size (num_doc, num_words)
 wl = cell['wl']
 
-W = cluster_extra(mat, n_topics, num_iters=1, epsilon=1e-2, plot=False)
+W = cluster_extra(mat, n_topics, num_iters=2, epsilon=1e-2, plot=False)
 
 display_topics(W, wl)
