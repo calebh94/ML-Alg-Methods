@@ -8,7 +8,7 @@ mat = scipy.io.loadmat('data.mat')
 mat = mat['X']
 X = mat[:, :-1]
 
-idx = cluster(X, 4, num_iters=50)
+idx = cluster(X, 4, num_iters=30)
 print(idx)
 
 acc = acc_measure(idx)

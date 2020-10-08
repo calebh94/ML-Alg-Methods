@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import random
+import matplotlib.pyplot as plt
 from AccMeasure import acc_measure
-
 
 
 def Estep(T, pi, mu, D, K, W):
@@ -18,24 +18,6 @@ def Estep(T, pi, mu, D, K, W):
 		denom_sum = numer_arr.sum()
 		gamma[i, :] = numer_arr / denom_sum
 	return gamma
-
-
-def Estep_Mat(T, pi, mu, D, K, W):
-	gamma = np.zeros((D,K))
-	gamma_bot = np.zeros((D,K))
-	gamma_top = np.zeros((D,K))
-	i=1
-	c=2
-	for i in range(0, W):
-		for c in range(0, K):
-			gamma_top[i,c] = pi[c] * np.prod(np.power(mu[:, c], T[i, :]))
-		# for c in range(0, K):
-		gamma_bot[i,:] = np.sum(gamma_top[i,:])
-	# gamma = gamma_top / gamma_bot
-	gamma = np.divide(gamma_top, gamma_bot)
-	# gamma = np.nan_to_num(gamma)
-	return gamma
-
 
 
 def Mstep(gamma, T, D, K, W):
@@ -134,66 +116,45 @@ def cluster(T, K, num_iters = 1000, epsilon = 1e-12):
 	while its <= num_iters and chg >= epsilon:
 		gamma_last = gamma.copy()
 		last_loss = loss
-		# E-Step, TODO: move to separate function call
-		gamma = Estep(T, pi, mu_arr, num_docs, K, num_words)
-		# for i in range(0, num_docs):
-		# 	numer_arr = np.empty((K))
-		# 	for c in range(0, K):
-		# 		numer = 1
-		# 		pi_c = pi[c]
-		# 		for j in range(0, num_words):
-		# 			wp = np.power(mu_arr[j, c], T[i, j])
-		# 			numer = numer * wp
-		# 		numer_arr[c] = numer * pi_c
-		# 	denom_sum = numer_arr.sum()
-		# 	gamma[i, :] = numer_arr / denom_sum
 
-		# Calculate Loss
+		# E-Step
+		gamma = Estep(T, pi, mu_arr, num_docs, K, num_words)
+		# gamma = Estep_Mat(T, pi, mu_arr, num_docs, K, num_words)
+
+
+		# Lostt, Errors and Predictions
 		loss = 0
 		for i in range(0, num_words):
 			loss_sub = 0
 			for c in range(0, K):
 				loss_sub = loss_sub + pi[c] * gamma[i, c]
 			loss = loss + np.log(loss_sub)
-
-		# err_arr = np.abs(gamma_last - gamma)
-		# err = np.sum(err_arr)
-		# chg = np.abs(last_loss - loss)
 		chg = np.linalg.norm(gamma - gamma_last)
 		conv_arr.append(chg)
-
 		idx = gamma.argmax(axis=1)
 
-		# M-Step, TODO: move to seperate function call
-		pi, mu_arr = Mstep(gamma, T, num_docs, K, num_words)
-		# mu_arr_last = mu_arr
-		# pi_last = pi
-		# for j in range(0, num_words):
-		#
-		# 	for c in range(0, K):
-		#
-		# 		numer2 = 0
-		# 		denom2 = 0
-		# 		sum2 = 0
-		# 		for i in range(0, num_docs):
-		# 			val = gamma[i, c] * T[i, j]
-		# 			numer2 = numer2 + val
-		#
-		# 			denom_arr = gamma[i,c] * T[i, :]  # TODO: matrix math applied elswhere?
-		# 			denom2 = denom2 + np.sum(denom_arr)
-		#
-		#
-		# 		mu_arr[j, c] = numer2 / denom2
-		#
-		# for c in range(0, K):
-		# 	pi[c] = np.sum(gamma[:, c]) / num_docs
+		# M-Step
+		# pi, mu_arr = Mstep(gamma, T, num_docs, K, num_words)
+		pi, mu_arr = Mstep_Mat(gamma, T, num_docs, K, num_words)
 
 		its = its+1
 		print("E-Step and M-Step complete on iteration {} with change of {}".format(its, chg))
 		acc = acc_measure(idx)
-		print('accuracy %.4f' % (acc))
+		print('accuracy %.4f' % acc)
 		acc_arr.append(acc)
 
+	# Plotting
+	plt.figure(1)
+	plt.plot(range(1,its+1), acc_arr)
+	plt.title("Accuracy Increase during Training")
+	plt.xlabel("Iteration")
+	plt.ylabel("Accuracy")
+	plt.figure(2)
+	plt.plot(range(1,its+1), conv_arr)
+	plt.title("Convergence during Training")
+	plt.xlabel("Iteration")
+	plt.ylabel("Norm of Posterior Matrix Delta")
+	plt.show()
 
 	if idx.max() > 3 or idx.min() < 0 or idx.dtype != np.int64:
 		raise ValueError("idx values must be 1,2,3, or 4!")
