@@ -14,9 +14,12 @@ cell = scipy.io.loadmat('movie_data.mat')
 rate_mat = cell['train']
 test_mat = cell['test']
 
-low_rank_ls = [1, 3, 5]
+# low_rank_ls = [1, 3, 5]
+low_rank_ls = [5]
 for lr in low_rank_ls:
     for reg_flag in [False, True]:
+    # for reg_flag in [True]:
+
         st = time.time()
         U, V = my_recommender(rate_mat, lr, reg_flag)
 
