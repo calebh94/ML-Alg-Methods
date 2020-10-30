@@ -14,12 +14,12 @@ def my_recommender(rate_mat, lr, with_reg):
     # Select Parameters
     if with_reg:
         reg_coef = 0.0015
-        epsilon = 1e-4
+        epsilon = 1e-5
         learning_rate = 0.00045
     else:
         learning_rate = 0.00045
         reg_coef = 0.00
-        epsilon = 1e-4
+        epsilon = 1e-5
     max_iter = 300
     n_user, n_item = rate_mat.shape[0], rate_mat.shape[1]
 
@@ -52,6 +52,8 @@ def my_recommender(rate_mat, lr, with_reg):
         chg = abs( last_error - error)
         if chg <= epsilon:
             break
+        elif chg <= 1e-4:
+            learning_rate = learning_rate / 2
     return U, V
 
 
