@@ -1,6 +1,6 @@
 import scipy.io
 import time
-from myRecommender import my_recommender, my_recommender_paramsearch
+from myRecommender import my_recommender
 import numpy as np
 
 
@@ -14,15 +14,14 @@ cell = scipy.io.loadmat('movie_data.mat')
 rate_mat = cell['train']
 test_mat = cell['test']
 
-low_rank_ls = [1, 3, 5]
-# low_rank_ls = [3]
+# low_rank_ls = [1, 3, 5, 7, 15]
+low_rank_ls = [31]
 for lr in low_rank_ls:
     for reg_flag in [False, True]:
-    # for reg_flag in [True]:
+    # for reg_flag in [False]:
 
         st = time.time()
         U, V = my_recommender(rate_mat, lr, reg_flag)
-        # U,V = my_recommender_paramsearch(rate_mat, test_mat, lr, reg_flag)
 
         t = time.time() - st
 
