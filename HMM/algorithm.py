@@ -25,8 +25,8 @@ def backward(X, ls, ks, pi, A, B):
     # initialization
     betas[-1, :] = 1
     # iteration
-    for t in range(X.shape[0]-1-1, 0, -1):
-        betas[t,:] = np.sum( A[:,:] * np.power(B[:,:], X[t+1,:])* betas[t+1, :] , axis=0)
+    for t in range(X.shape[0]-1-1, -1, -1):
+        betas[t,:] = np.sum( A[:,:] * np.prod(np.power(B[:,:], X[t+1,:]), axis=1) * betas[t+1, :] , axis=1)
     return betas
 
 
@@ -53,11 +53,15 @@ def algo(q, Y):
     P = np.sum(alphas[-1, :])
     p = alphas[-1, 1] * betas[-1, 1] / P
     ps = np.zeros((39))
-    ps[0] = (alphas[0,1] * betas[0,1]) / (np.sum(alphas[0,:]))
+    # ps[0] = (alphas[0,1] * betas[0,1]) / (np.sum(alphas[0,:]))
+    # ps[0] = (alphas[0,1] * betas[0,1]) / P
+    ps[0] = 0.0
     for n in range(1, ps.shape[0]):
-        P_tmp = np.sum(alphas[n, :])
-        ps[n] = alphas[n, 1] * betas[n, 1] / P_tmp
+        # P_tmp = np.sum(alphas[n, :])
+        ps[n] = alphas[n, 1] * betas[n, 1] / P
+    print(ps)
     plt.plot(np.linspace(1,39,39), ps)
     plt.show()
+    np.save("probs_{}".format(q), ps)
 
     return p, fig
